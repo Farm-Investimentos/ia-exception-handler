@@ -1,0 +1,129 @@
+server:
+  port: 8090
+
+spring:
+  application:
+    name: exception-intelligence-server
+
+exception-intelligence:
+  # ── LLM provider ──────────────────────────────────────────────────────────
+  llm:
+    provider: claude   # claude | bedrock | openai | gemini
+
+    claude:
+      api-key: ${ANTHROPIC_KEY:}
+      model: claude-sonnet-4-6
+      max-tokens: 2048
+      timeout-seconds: 30
+
+    bedrock:
+      region: us-east-1
+      # Any Bedrock model ID — for Claude use anthropic.* prefix
+      model-id: anthropic.claude-3-5-sonnet-20241022-v2:0
+      max-tokens: 2048
+      # Leave blank to use IAM role / env vars (recommended for production)
+      access-key: ${AWS_ACCESS_KEY_ID:}
+      secret-key: ${AWS_SECRET_ACCESS_KEY:}
+
+    openai:
+      api-key: ${OPENAI_KEY:}
+      model: gpt-4o
+      max-tokens: 2048
+      timeout-seconds: 30
+
+    gemini:
+      api-key: ${GEMINI_API_KEY:}
+      model: gemini-1.5-pro
+      max-tokens: 2048
+      timeout-seconds: 30
+
+  # ── SCM provider ──────────────────────────────────────────────────────────
+  scm:
+    provider: github   # github | gitlab (gitlab = future)
+
+    github:
+      token: ${GITHUB_TOKEN:}
+      # owner e repo são deixados em branco intencionalmente.
+      # Cada SDK cliente envia seu próprio repositório no payload da exceção
+      # (exception-intelligence.repository.owner / .name). O servidor nunca
+      # precisa de um repo fixo — ele suporta múltiplos serviços/repos ao mesmo tempo.
+      owner: ""
+      repo: ""
+      base-branch: main
+      labels:
+        - bug
+        - auto-detected
+      issue:
+        enabled: true
+        title-prefix: "[AUTO]"
+      pull-request:
+        enabled: true
+        commit-message: "fix: auto-suggested fix for %s"
+
+  # ── Issue tracker (onde as issues são criadas) ─────────────────────────────
+  issue-tracker:
+    type: jira   # github | jira
+
+    jira:
+      url: ${JIRA_URL:}
+      username: ${JIRA_USERNAME:}
+      api-token: ${JIRA_API_TOKEN:}
+      project-key: ${JIRA_PROJECT_KEY:}
+      issue-type: Bug
+      labels:
+        - auto-detected
+
+  # ── Notification provider ─────────────────────────────────────────────────
+  notification:
+    provider: teams    # teams | slack
+
+    teams:
+      enabled: true
+      webhook-url: ${TEAMS_WEBHOOK_URL:}
+
+    slack:
+      enabled: false
+      webhook-url: ${SLACK_WEBHOOK_URL:}
+
+  # ── Deduplication ─────────────────────────────────────────────────────────
+  deduplication:
+    enabled: true
+    ttl-minutes: 60
+    store: memory      # memory | redis
+
+  # ── SQS ingest (alternative to HTTP API) ──────────────────────────────────
+  sqs:
+    enabled: false
+    queue-url: ${SQS_QUEUE_URL:}
+
+  # ── Idioma das respostas do LLM ─────────────────────────────────────────
+  # Tag BCP-47: pt-BR (padrão), en-US, es-ES, etc.
+  # Configurar via env var: EXCEPTION_INTELLIGENCE_RESPONSE_LANGUAGE
+  response-language: ${EXCEPTION_INTELLIGENCE_RESPONSE_LANGUAGE:pt-BR}
+
+  # ── Async processing thread pool ─────────────────────────────────────────
+  async:
+    core-pool-size: 2
+    max-pool-size: 8
+    queue-capacity: 500
+    thread-name-prefix: exc-intel-
+
+logging:
+  level:
+    io.github.exceptionintelligence: INFO
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      show-details: never
+  health:
+    livenessState:
+      enabled: true
+    readinessState:
+      enabled: true

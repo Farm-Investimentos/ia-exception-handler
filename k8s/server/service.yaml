@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: exception-intelligence-server
+  namespace: ia-agent-test
+  labels:
+    app: exception-intelligence-server
+spec:
+  selector:
+    app: exception-intelligence-server
+  ports:
+    - name: http
+      port: 8090
+      targetPort: 8090
+  type: ClusterIP

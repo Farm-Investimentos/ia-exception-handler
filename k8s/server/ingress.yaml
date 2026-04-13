@@ -1,0 +1,28 @@
+# Ajuste annotations e host conforme o Ingress Controller do seu cluster
+# (nginx, traefik, alb, etc.)
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: exception-intelligence-server
+  namespace: ia-agent-test
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+    # Para TLS automático com cert-manager:
+    # cert-manager.io/cluster-issuer: letsencrypt-prod
+spec:
+  # ingressClassName: nginx   # descomente se necessário
+  rules:
+    - host: exception-intelligence.seu-dominio.com   # ajuste
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: exception-intelligence-server
+                port:
+                  number: 8090
+  # tls:
+  #   - hosts:
+  #       - exception-intelligence.seu-dominio.com
+  #     secretName: exception-intelligence-tls

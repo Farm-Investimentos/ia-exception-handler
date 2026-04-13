@@ -1,0 +1,50 @@
+name: Publish SDK Java to Maven Central
+
+on:
+  push:
+    tags:
+      - 'sdk-java-v*'
+  workflow_dispatch:
+
+jobs:
+  publish:
+    name: Publish exception-intelligence-sdk-java
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: maven
+          gpg-private-key: ${{ secrets.GPG_PRIVATE_KEY }}
+          gpg-passphrase: MAVEN_GPG_PASSPHRASE
+
+      - name: Configure Maven settings (Sonatype credentials)
+        run: |
+          mkdir -p ~/.m2
+          cat > ~/.m2/settings.xml << 'EOF'
+          <settings>
+            <servers>
+              <server>
+                <id>central</id>
+                <username>${{ secrets.SONATYPE_USERNAME }}</username>
+                <password>${{ secrets.SONATYPE_PASSWORD }}</password>
+              </server>
+            </servers>
+          </settings>
+          EOF
+
+      - name: Run tests
+        run: mvn --no-transfer-progress -B test -pl exception-intelligence-sdk-java
+
+      - name: Publish to Maven Central
+        run: |
+          mvn --no-transfer-progress -B deploy \
+            -pl exception-intelligence-sdk-java \
+            -P release \
+            -DskipTests \
+            -Dgpg.passphrase=${{ secrets.GPG_PASSPHRASE }}
+        env:
+          MAVEN_GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}

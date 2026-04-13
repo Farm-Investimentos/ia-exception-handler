@@ -1,0 +1,87 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: exception-intelligence-server
+  namespace: ia-agent-test
+  labels:
+    app: exception-intelligence-server
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: exception-intelligence-server
+  template:
+    metadata:
+      labels:
+        app: exception-intelligence-server
+    spec:
+      # Com ECR, o pull é feito pelo IAM role dos nodes do cluster.
+      # Garanta que a node IAM role tenha a policy AmazonEC2ContainerRegistryReadOnly
+      # (ou uma policy customizada com ecr:GetDownloadUrlForLayer, ecr:BatchGetImage, ecr:GetAuthorizationToken).
+      # Nenhum imagePullSecret é necessário.
+      containers:
+        - name: server
+          image: 700250599162.dkr.ecr.us-east-1.amazonaws.com/exception-intelligence-server:latest
+          ports:
+            - containerPort: 8090
+          envFrom:
+            - configMapRef:
+                name: exception-intelligence-server-config
+          env:
+            - name: ANTHROPIC_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: exception-intelligence-server-secrets
+                  key: ANTHROPIC_KEY
+            - name: GITHUB_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: exception-intelligence-server-secrets
+                  key: GITHUB_TOKEN
+            - name: JIRA_URL
+              valueFrom:
+                secretKeyRef:
+                  name: exception-intelligence-server-secrets
+                  key: JIRA_URL
+            - name: JIRA_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: exception-intelligence-server-secrets
+                  key: JIRA_USERNAME
+            - name: JIRA_API_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: exception-intelligence-server-secrets
+                  key: JIRA_API_TOKEN
+            - name: JIRA_PROJECT_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: exception-intelligence-server-secrets
+                  key: JIRA_PROJECT_KEY
+            - name: TEAMS_WEBHOOK_URL
+              valueFrom:
+                secretKeyRef:
+                  name: exception-intelligence-server-secrets
+                  key: TEAMS_WEBHOOK_URL
+          readinessProbe:
+            httpGet:
+              path: /actuator/health/readiness
+              port: 8090
+            initialDelaySeconds: 20
+            periodSeconds: 10
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: 8090
+            initialDelaySeconds: 30
+            periodSeconds: 15
+            failureThreshold: 3
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "250m"
+            limits:
+              memory: "1Gi"
+              cpu: "500m"
+      restartPolicy: Always

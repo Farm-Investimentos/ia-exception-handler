@@ -1,0 +1,53 @@
+# Dependencies
+node_modules/
+**/node_modules/
+
+# Build outputs
+dist/
+**/dist/
+build/
+**/build/
+target/
+
+# Java / Maven
+*.class
+*.jar
+*.war
+*.ear
+.mvn/
+mvn-wrapper.jar
+
+# Environment & secrets
+.env
+.env.local
+.env.*.local
+*.env
+
+# IDE
+.idea/
+*.iml
+.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+npm-debug.log*
+
+# Test coverage
+coverage/
+**/coverage/
+
+# Lock files (keep package-lock.json for reproducible builds)
+yarn.lock
+
+# Temp
+*.tmp
+*.swp
