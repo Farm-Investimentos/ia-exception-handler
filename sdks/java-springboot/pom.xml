@@ -7,7 +7,7 @@
     <parent>
         <groupId>io.github.rscanesilva</groupId>
         <artifactId>exception-intelligence-parent</artifactId>
-        <version>2.0.0-SNAPSHOT</version>
+        <version>2.0.1</version>
         <relativePath>../../pom.xml</relativePath>
     </parent>
 
@@ -15,6 +15,7 @@
     <packaging>jar</packaging>
     <name>Exception Intelligence SDK — Java (Spring Boot Starter)</name>
     <description>Spring Boot Starter that captures runtime exceptions and forwards them to the Exception Intelligence Server for analysis</description>
+    <url>https://github.com/rscanesilva/IA-EXCEPTION-HANDLER-AGENTE</url>
 
     <dependencies>
         <!-- Spring Boot autoconfigure + web (provided by the host application) -->
