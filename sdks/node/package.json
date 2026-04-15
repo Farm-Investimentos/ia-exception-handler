@@ -1,5 +1,5 @@
 {
-  "name": "@rscdigital/sdk-node",
+  "name": "@farm-investimentos/exception-intelligence-sdk-node",
   "version": "2.0.0",
   "description": "Exception Intelligence SDK for Node.js — captures runtime errors and forwards them to the analysis server",
   "main": "dist/index.js",

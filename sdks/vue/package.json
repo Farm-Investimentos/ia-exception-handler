@@ -1,5 +1,5 @@
 {
-  "name": "@rscdigital/sdk-vue",
+  "name": "@farm-investimentos/exception-intelligence-sdk-vue",
   "version": "2.0.0",
   "description": "Exception Intelligence SDK for Vue.js — captures runtime errors in browser and forwards them to the analysis server",
   "main": "dist/index.js",
