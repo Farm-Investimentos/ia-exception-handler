@@ -19,11 +19,28 @@ import { sendReport, RateLimiter } from '../client';
  * ```
  */
 export function registerProcessHandlers(config: SdkConfig): void {
+  if (!config || !config.serverUrl) {
+    console.warn('[exception-intelligence] registerProcessHandlers called without serverUrl — SDK disabled, no handlers registered.');
+    return;
+  }
+
   const rateLimiter = new RateLimiter(config.maxEventsPerMinute ?? 5);
 
   process.on('uncaughtException', (err: Error) => {
+    // Node.js docs: after an uncaughtException the process may be in an
+    // undefined state; the only safe action is to send the report and exit.
+    // We schedule process.exit(1) immediately and give the fire-and-forget
+    // send a best-effort chance to complete within 2 s.
+    const exit = () => process.exit(1);
+    const exitTimer = setTimeout(exit, 2000);
+    exitTimer.unref?.(); // don't keep the event loop alive just for the timer
+
     if (rateLimiter.tryConsume()) {
-      sendError(err, config, 'uncaughtException').catch(() => undefined);
+      sendError(err, config, 'uncaughtException')
+        .catch(() => undefined)
+        .finally(exit);
+    } else {
+      exit();
     }
   });
 

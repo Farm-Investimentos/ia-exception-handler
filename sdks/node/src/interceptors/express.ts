@@ -21,6 +21,11 @@ import { sendReport, RateLimiter } from '../client';
  * Must be registered **after** all routes and other middleware.
  */
 export function createExpressErrorHandler(config: SdkConfig): ErrorRequestHandler {
+  if (!config || !config.serverUrl) {
+    console.warn('[exception-intelligence] Express handler created without serverUrl — SDK disabled (pass-through).');
+    return (err: unknown, _req: Request, _res: Response, next: NextFunction) => next(err);
+  }
+
   const rateLimiter = new RateLimiter(config.maxEventsPerMinute ?? 5);
 
   return (err: unknown, req: Request, _res: Response, next: NextFunction) => {

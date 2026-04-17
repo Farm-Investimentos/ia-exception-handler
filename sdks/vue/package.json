@@ -1,6 +1,6 @@
 {
   "name": "@farm-investimentos/exception-intelligence-sdk-vue",
-  "version": "2.0.0",
+  "version": "2.0.3",
   "description": "Exception Intelligence SDK for Vue.js — captures runtime errors in browser and forwards them to the analysis server",
   "main": "dist/index.js",
   "module": "dist/index.esm.js",

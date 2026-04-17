@@ -43,7 +43,16 @@ public class GlobalExceptionInterceptor
         this.stackParser = stackParser;
         this.props = props;
 
-        Thread.setDefaultUncaughtExceptionHandler(this);
+        // Chain to any existing default handler instead of replacing it outright.
+        // This ensures the application's own uncaught-exception logic (e.g. a
+        // framework-level handler set before the SDK was initialised) still runs.
+        Thread.UncaughtExceptionHandler previous = Thread.getDefaultUncaughtExceptionHandler();
+        Thread.setDefaultUncaughtExceptionHandler((thread, ex) -> {
+            uncaughtException(thread, ex);
+            if (previous != null) {
+                previous.uncaughtException(thread, ex);
+            }
+        });
     }
 
     // ── HandlerExceptionResolver ──────────────────────────────────────────

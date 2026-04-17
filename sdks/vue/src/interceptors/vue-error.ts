@@ -25,40 +25,51 @@ export function installVueErrorHandler(
   ) => {
     if (!rateLimiter.tryConsume()) return;
 
-    const error = err instanceof Error ? err : new Error(String(err));
-    const frames = parseStackTrace(error.stack ?? '', config.projectUrls ?? []);
-    const fingerprint = computeFingerprint(error.constructor.name, frames);
+    // Wrapped in try-catch: any SDK internal failure must never interfere
+    // with Vue's normal error reporting or component lifecycle.
+    try {
+      const error = err instanceof Error ? err : new Error(String(err));
+      const frames = parseStackTrace(error.stack ?? '', config.projectUrls ?? []);
+      const fingerprint = computeFingerprint(error.constructor.name, frames);
 
-    const componentName = resolveComponentName(instance);
+      const componentName = resolveComponentName(instance);
 
-    let report = {
-      language: 'javascript',
-      framework: 'vue',
-      serviceName: config.serviceName,
-      environment: config.environment,
-      timestamp: new Date().toISOString(),
-      threadName: `vue:${info}`,
-      exception: {
-        type: error.constructor.name,
-        message: `[${componentName ?? 'Component'}] ${error.message}`,
-        rawStackTrace: error.stack,
-        frames,
-      },
-      request: {
-        uri: window.location.href,
-        queryString: window.location.search.replace(/^\?/, '') || undefined,
-        headers: {
-          'User-Agent': navigator.userAgent,
+      let report = {
+        language: 'javascript',
+        framework: 'vue',
+        serviceName: config.serviceName,
+        environment: config.environment,
+        timestamp: new Date().toISOString(),
+        threadName: `vue:${info}`,
+        exception: {
+          type: error.constructor.name,
+          message: `[${componentName ?? 'Component'}] ${error.message}`,
+          rawStackTrace: error.stack,
+          frames,
         },
-      },
-      fingerprint,
-      repository: config.repository,
-    };
+        request: {
+          uri: window.location.href,
+          queryString: window.location.search.replace(/^\?/, '') || undefined,
+          headers: {
+            'User-Agent': navigator.userAgent,
+          },
+        },
+        fingerprint,
+        repository: config.repository,
+      };
 
-    const final = config.beforeSend ? config.beforeSend(report) : report;
-    if (!final) return;
+      const final = config.beforeSend ? config.beforeSend(report) : report;
+      if (!final) return;
 
-    sendReport(final, config).catch(() => undefined);
+      sendReport(final, config).catch(() => undefined);
+    } catch (sdkErr: unknown) {
+      // SDK internal error — log and move on; do not re-throw so Vue can
+      // continue handling the original error normally.
+      console.warn(
+        '[exception-intelligence] Internal error in Vue error handler:',
+        sdkErr instanceof Error ? sdkErr.message : String(sdkErr)
+      );
+    }
   };
 }
 

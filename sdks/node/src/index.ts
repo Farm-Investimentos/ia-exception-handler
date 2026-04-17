@@ -1,5 +1,6 @@
 export { createExpressErrorHandler } from './interceptors/express';
 export { createNestJsExceptionFilter } from './interceptors/nestjs';
+export { createNestJsMicroserviceFilter } from './interceptors/nestjs-microservice';
 export { registerProcessHandlers } from './interceptors/process';
 export { parseStackTrace, topFrame } from './parser/stack-parser';
 export { computeFingerprint } from './parser/fingerprint';
