@@ -51,6 +51,13 @@ interface RxjsLike {
 }
 
 function emitOrThrow(exception: unknown): unknown {
+  // Align with Nest's BaseRpcExceptionFilter: when the thrown value is a
+  // RpcException, emit its inner error (getError()) — not the wrapper
+  // itself. Otherwise the wrapper's serialization would hide the inner
+  // error one level deep (e.g. { error: { status: 404, ... } }), which
+  // upstream gateways typically can't parse.
+  const payload = unwrapRpcException(exception);
+
   // Attempt rxjs.throwError so Nest's RPC pipeline handles the error
   // through the normal observable contract. If rxjs isn't available
   // (shouldn't happen in a real Nest app), re-throw and let the
@@ -58,10 +65,30 @@ function emitOrThrow(exception: unknown): unknown {
   try {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const rxjs = require('rxjs') as RxjsLike;
-    return rxjs.throwError(() => exception);
+    return rxjs.throwError(() => payload);
   } catch {
-    throw exception;
+    throw payload;
   }
+}
+
+/**
+ * Duck-typed check for @nestjs/microservices' RpcException. We can't
+ * `instanceof` it without making @nestjs/microservices a hard dependency
+ * of the SDK, so we detect it structurally via its `getError()` method.
+ */
+function unwrapRpcException(exception: unknown): unknown {
+  if (
+    exception != null &&
+    typeof exception === 'object' &&
+    typeof (exception as { getError?: unknown }).getError === 'function'
+  ) {
+    try {
+      return (exception as { getError: () => unknown }).getError();
+    } catch {
+      return exception;
+    }
+  }
+  return exception;
 }
 
 function extractPattern(host: ArgumentsHost): string | undefined {
