@@ -88,4 +88,61 @@ describe('createNestJsMicroserviceFilter', () => {
     expect(report.exception.type).toBe('Error');
     expect(report.exception.message).toBe('string error');
   });
+
+  it('unwraps RpcException so downstream consumers receive the inner error (not the wrapper)', () => {
+    // Reproduces @nestjs/microservices' RpcException via duck-typing — we
+    // avoid adding @nestjs/microservices as a test dependency here.
+    const innerError = {
+      response: { statusCode: 404, message: 'not found', error: 'Not Found' },
+      status: 404,
+      message: 'not found',
+      name: 'NotFoundException',
+    };
+    class FakeRpcException extends Error {
+      constructor(private readonly inner: unknown) {
+        super(typeof inner === 'object' && inner != null && 'message' in (inner as Record<string, unknown>)
+          ? String((inner as { message: unknown }).message)
+          : 'Rpc Exception');
+        this.name = 'RpcException';
+      }
+      getError(): unknown {
+        return this.inner;
+      }
+    }
+
+    const filter = createNestJsMicroserviceFilter(baseConfig);
+    const captured: unknown[] = [];
+    const result = filter.catch(new FakeRpcException(innerError), makeHost('program.find')) as {
+      subscribe?: (obs: { next: (v: unknown) => void; error: (e: unknown) => void; complete: () => void }) => void;
+    };
+
+    expect(typeof result?.subscribe).toBe('function');
+    result.subscribe?.({
+      next: () => undefined,
+      error: (err) => captured.push(err),
+      complete: () => undefined,
+    });
+
+    expect(captured).toHaveLength(1);
+    expect(captured[0]).toBe(innerError);
+    expect((captured[0] as { status?: unknown }).status).toBe(404);
+  });
+
+  it('leaves non-RpcException errors untouched when emitting', () => {
+    const filter = createNestJsMicroserviceFilter(baseConfig);
+    const plain = new Error('boom');
+    const captured: unknown[] = [];
+    const result = filter.catch(plain, makeHost()) as {
+      subscribe?: (obs: { next: (v: unknown) => void; error: (e: unknown) => void; complete: () => void }) => void;
+    };
+
+    result.subscribe?.({
+      next: () => undefined,
+      error: (err) => captured.push(err),
+      complete: () => undefined,
+    });
+
+    expect(captured).toHaveLength(1);
+    expect(captured[0]).toBe(plain);
+  });
 });
